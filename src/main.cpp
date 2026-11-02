@@ -1,7 +1,6 @@
 #include "globals.h"
 #include "level.h"
 #include "player.h"
-#include <cstdio>
 #include <fstream>
 #include <imgui.h>
 #include <iostream>
@@ -75,7 +74,7 @@ bool CollisionRectSpike(const Rectangle &rect, const Spike &spike) {
 }
 
 int main() {
-    int DEBUG = 1;
+    int DEBUG = 0;
 
     InitWindow(screenWidth, screenHeight, "Sidescroller");
     SetTargetFPS(60);
@@ -112,7 +111,7 @@ int main() {
     for (const auto &level : level_arr) {
         world.levels.push_back(LoadLevel(level));
     }
-    world.current_level = &world.levels[0];
+    world.current_level = &world.levels[2];
 
     Player player;
     if (SetupPlayer(&player, world.current_level) != 0) {
@@ -135,9 +134,16 @@ int main() {
             input = GatherInput();
 
         // Horizontal movement and collision
-        float dx = input.move_x * player.walk_speed * dt;
         player.touches_wall = 0;
+
+        float dx = input.move_x * player.walk_speed * dt + player.vel.x * dt;
         player.pos.x += dx;
+
+        if (input.move_x == 0) {
+            player.vel.x *= 0.95f;
+        } else {
+            player.vel.x *= 0.85f;
+        }
 
         // Horizontal collision check
         const Rectangle hitbox = GetPlayerHitbox(player);
@@ -197,19 +203,12 @@ int main() {
             } else if (!player.grounded && (player.touches_wall ||
                                             player.wall_coyote_timer > 0.0f)) {
                 if (player.wall_cooldown_timer <= 0.0f) {
-                    player.vel.y = -player.jump_velocity * 0.85f;
+                    player.vel.y = -player.jump_velocity * 0.9f;
                     player.vel.x = -player.jump_velocity * player.touches_wall;
                     player.wall_cooldown_timer = player.wall_cooldown_time;
                 }
             }
         }
-        // apply horizontal movement and friction
-        if (input.move_x == 0) {
-            player.vel.x *= 0.95f;
-        } else {
-            player.vel.x *= 0.85f;
-        }
-        player.pos.x += player.vel.x * dt;
 
         if (player.wall_cooldown_timer > 0.0f) {
             player.wall_cooldown_timer -= dt;
