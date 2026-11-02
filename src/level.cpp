@@ -97,9 +97,9 @@ Level LoadLevel(const nlohmann::json &data) {
 TileBounds GetTileBounds(const Rectangle &rect) {
     // Returns surrounding tiles in gridspace
     return {(int)floor(rect.x / TILESIZE),
-            (int)floor((rect.x + rect.width - 0.01f) / TILESIZE),
+            (int)floor((rect.x + rect.width - 0.001f) / TILESIZE),
             (int)floor(rect.y / TILESIZE),
-            (int)floor((rect.y + rect.height - 0.01f) / TILESIZE)};
+            (int)floor((rect.y + rect.height - 0.001f) / TILESIZE)};
 }
 
 int IsColliding(const Level *level, int x, int y) {

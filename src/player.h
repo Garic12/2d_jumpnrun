@@ -13,6 +13,7 @@ struct Player {
         float jump_time_to_fall;
 
         float jump_velocity;
+        float walljump_velocity;
         float jump_gravity;
         float fall_gravity;
 
@@ -25,7 +26,7 @@ struct Player {
         Hitbox body = {{0.0f, 0.0f}, {8.0f, 8.0f}};
         Hitbox hurtbox = {{1.0f, 2.0f}, {5.0f, 4.0f}};
         bool grounded = true;
-        bool touches_wall;
+        int touches_wall;
         bool has_key;
 
         float wall_coyote_timer;

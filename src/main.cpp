@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "level.h"
 #include "player.h"
+#include <cstdio>
 #include <fstream>
 #include <imgui.h>
 #include <iostream>
@@ -74,7 +75,7 @@ bool CollisionRectSpike(const Rectangle &rect, const Spike &spike) {
 }
 
 int main() {
-    int DEBUG = 0;
+    int DEBUG = 1;
 
     InitWindow(screenWidth, screenHeight, "Sidescroller");
     SetTargetFPS(60);
@@ -135,35 +136,53 @@ int main() {
 
         // Horizontal movement and collision
         float dx = input.move_x * player.walk_speed * dt;
-        player.touches_wall = false;
-        if (dx != 0) {
-            player.pos.x += dx;
+        player.touches_wall = 0;
+        player.pos.x += dx;
 
-            const Rectangle hitbox = GetPlayerHitbox(player);
-            const TileBounds bounds = GetTileBounds(hitbox);
-
-            for (int y = bounds.top; y <= bounds.bottom; ++y) {
-                for (int x = bounds.left; x <= bounds.right; ++x) {
-                    // Check grid bounds
-                    const int collision_id =
-                        IsColliding(world.current_level, x, y);
-                    if (collision_id == 1) {
-                        player.touches_wall = true;
-
-                        if (dx > 0.0f) {
-                            player.pos.x = x * TILESIZE - player.body.offset.x -
-                                           player.body.size.x;
-                        } else if (dx < 0.0f) {
-                            player.pos.x =
-                                (x + 1) * TILESIZE - player.body.offset.x;
-                        }
+        // Horizontal collision check
+        const Rectangle hitbox = GetPlayerHitbox(player);
+        const TileBounds bounds = GetTileBounds(hitbox);
+        for (int y = bounds.top; y <= bounds.bottom; ++y) {
+            for (int x = bounds.left; x <= bounds.right; ++x) {
+                if (IsColliding(world.current_level, x, y) == 1) {
+                    if (dx > 0.0f) {
+                        player.pos.x = x * TILESIZE - player.body.offset.x -
+                                       player.body.size.x;
+                    } else if (dx < 0.0f) {
+                        player.pos.x =
+                            (x + 1) * TILESIZE - player.body.offset.x;
                     }
                 }
             }
         }
 
+        // Check if player is standing next to wall
+        // TODO: That looks kinda dirty
+        {
+            constexpr float probe = 0.5f; // pixels
+            const Rectangle hitbox = GetPlayerHitbox(player);
+            const TileBounds bounds = GetTileBounds(hitbox);
+            const int probe_left = (int)floor((hitbox.x - probe) / TILESIZE);
+            const int probe_right =
+                (int)floor((hitbox.x + hitbox.width + probe) / TILESIZE);
+
+            for (int y = bounds.top; y <= bounds.bottom; ++y) {
+                if ((probe_left < bounds.left &&
+                     IsColliding(world.current_level, probe_left, y) == 1)) {
+                    player.touches_wall = -1;
+                    break;
+
+                } else if ((probe_right > bounds.right &&
+                            IsColliding(world.current_level, probe_right, y) ==
+                                1)) {
+                    player.touches_wall = 1;
+                    break;
+                }
+            }
+        }
+
         // Walljump Coyote
-        if (player.touches_wall) {
+        if (player.touches_wall != 0) {
             player.wall_coyote_timer = player.wall_coyote_time;
         } else {
             if (player.wall_coyote_timer > 0.0f) {
@@ -171,27 +190,36 @@ int main() {
             }
         }
 
+        if (input.jump_pressed) {
+            if (player.grounded) {
+                player.vel.y = -player.jump_velocity;
+                player.grounded = false;
+            } else if (!player.grounded && (player.touches_wall ||
+                                            player.wall_coyote_timer > 0.0f)) {
+                if (player.wall_cooldown_timer <= 0.0f) {
+                    player.vel.y = -player.jump_velocity * 0.85f;
+                    player.vel.x = -player.jump_velocity * player.touches_wall;
+                    player.wall_cooldown_timer = player.wall_cooldown_time;
+                }
+            }
+        }
+        // apply horizontal movement and friction
+        if (input.move_x == 0) {
+            player.vel.x *= 0.95f;
+        } else {
+            player.vel.x *= 0.85f;
+        }
+        player.pos.x += player.vel.x * dt;
+
+        if (player.wall_cooldown_timer > 0.0f) {
+            player.wall_cooldown_timer -= dt;
+        }
+
         // Vertical movement and collision
         if (player.vel.y >= 0) {
             player.vel.y += player.fall_gravity * dt;
         } else {
             player.vel.y += player.jump_gravity * dt;
-        }
-
-        if (input.jump_pressed) {
-            if (player.grounded) {
-                player.vel.y = -player.jump_velocity;
-                player.grounded = false;
-            } else if ((player.touches_wall ||
-                        player.wall_coyote_timer > 0.0f)) {
-                if (player.wall_cooldown_timer <= 0.0f) {
-                    player.vel.y = -player.jump_velocity;
-                    player.wall_cooldown_timer = player.wall_cooldown_time;
-                }
-            }
-        }
-        if (player.wall_cooldown_timer > 0.0f) {
-            player.wall_cooldown_timer -= dt;
         }
 
         bool has_gravity = true;
@@ -362,7 +390,7 @@ int main() {
             ImGui::DragFloat2("Player pos", &player.pos.x);
             ImGui::Separator();
             // ImGui::DragFloat("Walk speed", &player.walk_speed, 1.0f);
-            ImGui::Checkbox("Has Key", &player.has_key);
+            ImGui::DragInt("Touches Wall", &player.touches_wall);
             ImGui::End();
 
             // ImGui::ShowDemoWindow(); // shows every available widget,

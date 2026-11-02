@@ -7,6 +7,8 @@ int SetupPlayer(Player *player, Level *level) {
 
     player->jump_velocity =
         (2.0f * player->jump_height) / player->jump_time_to_peak;
+    player->walljump_velocity =
+        (2.0f * player->jump_height) / player->jump_time_to_peak;
     player->jump_gravity =
         (-2.0f * player->jump_height) /
         (player->jump_time_to_peak * player->jump_time_to_peak) * -1;
