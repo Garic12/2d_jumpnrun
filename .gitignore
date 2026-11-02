@@ -70,3 +70,7 @@ Testing/
 # personal notes
 notes/
 imgui.ini
+
+# Windows packaging output
+dist/
+Sidescroller-windows.zip

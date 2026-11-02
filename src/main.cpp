@@ -123,7 +123,7 @@ int main() {
     Camera2D cam = {.offset = {screenWidth / 2.0f, screenHeight / 2.0f},
                     .target = player.pos,
                     .rotation = 0.0,
-                    .zoom = 7.0f};
+                    .zoom = 5.0f};
 
     // --- Game Loop ---
     while (!WindowShouldClose()) {
@@ -236,6 +236,15 @@ int main() {
                 }
             }
         }
+        // Check key related collision
+        if (!player.has_key) {
+            Rectangle key_rect = {world.current_level->key.x,
+                                  world.current_level->key.y + 4.0f, 8.0f,
+                                  3.0f};
+            if (CheckCollisionRecs(GetPlayerHitbox(player), key_rect)) {
+                player.has_key = true;
+            }
+        }
 
         // Check walking through door, maybe do this more efficient someday
         if (player.has_key) {
@@ -248,6 +257,7 @@ int main() {
                             world.current_level = &new_level;
                             player.pos = door.target_pos;
                             player.last_entry = door.target_pos;
+                            player.has_key = false;
                             break;
                         }
                     }
@@ -264,16 +274,6 @@ int main() {
                 collision = true;
             } else {
                 collision = false;
-            }
-        }
-
-        // Check key related collision
-        if (!player.has_key) {
-            Rectangle key_rect = {world.current_level->key.x,
-                                  world.current_level->key.y + 4.0f, 8.0f,
-                                  3.0f};
-            if (CheckCollisionRecs(GetPlayerHitbox(player), key_rect)) {
-                player.has_key = true;
             }
         }
 
@@ -360,9 +360,9 @@ int main() {
             ImGui::Text("Frametime: %.3f ms", GetFrameTime() * 1000.0f);
             ImGui::Text("Current Level: %s", (world.current_level->id).c_str());
             ImGui::DragFloat2("Player pos", &player.pos.x);
-            ImGui::Text("Walljump Cooldown: %.1f", player.wall_cooldown_timer);
             ImGui::Separator();
             // ImGui::DragFloat("Walk speed", &player.walk_speed, 1.0f);
+            ImGui::Checkbox("Has Key", &player.has_key);
             ImGui::End();
 
             // ImGui::ShowDemoWindow(); // shows every available widget,
