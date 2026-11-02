@@ -111,7 +111,7 @@ int main() {
     for (const auto &level : level_arr) {
         world.levels.push_back(LoadLevel(level));
     }
-    world.current_level = &world.levels[2];
+    world.current_level = &world.levels[0];
 
     Player player;
     if (SetupPlayer(&player, world.current_level) != 0) {
