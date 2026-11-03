@@ -60,6 +60,11 @@ Level LoadLevel(const nlohmann::json &data) {
                 } else if (entity_id == "Key") {
                     level.key = {entity["__worldX"].get<float>(),
                                  entity["__worldY"].get<float>()};
+                } else if (entity_id == "Coin") {
+                    Vector2 coin_pos = {entity["__worldX"].get<float>(),
+                                        entity["__worldY"].get<float>()};
+
+                    level.coins.push_back({coin_pos});
                 }
             }
         } else if (type == "Tiles") {

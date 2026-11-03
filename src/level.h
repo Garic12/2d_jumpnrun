@@ -10,6 +10,11 @@ struct Spike {
         Vector2 c;
 };
 
+struct Coin {
+        Vector2 pos;
+        float r = 4.0f;
+};
+
 struct Tile {
         Vector2 world_pos;
         Vector2 src_pos;
@@ -42,6 +47,7 @@ struct Level {
         Vector2 key;
         std::vector<Door> doors;
         std::vector<Spike> spikes;
+        std::vector<Coin> coins;
 };
 
 struct World {

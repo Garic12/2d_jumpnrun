@@ -304,6 +304,21 @@ int main() {
             }
         }
 
+        // Coin collision
+        auto &coins = world.current_level->coins; // vector type
+        for (auto it = coins.begin(); it != coins.end();) {
+            const Coin &coin = *it;
+
+            Vector2 coin_center = {coin.pos.x + 4.0f, coin.pos.y + 4.0f};
+
+            if (CheckCollisionCircleRec(coin_center, coin.r,
+                                        GetPlayerHurtbox(player))) {
+                it = coins.erase(it); // Erase and get the next iterator
+            } else {
+                ++it;
+            }
+        }
+
         // Move and Clamp Camera
         float half_view_x = screenWidth / (2.0f * cam.zoom);
         float half_view_y = screenHeight / (2.0f * cam.zoom);
@@ -369,6 +384,15 @@ int main() {
             src.y = 40.0f;
             dest.x = world.current_level->key.x;
             dest.y = world.current_level->key.y;
+            DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
+        }
+
+        // Coins
+        src.x = 64;
+        src.y = 40;
+        for (const Coin &coin : world.current_level->coins) {
+            dest.x = coin.pos.x;
+            dest.y = coin.pos.y;
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
         }
 
