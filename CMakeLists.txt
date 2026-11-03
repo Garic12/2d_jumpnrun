@@ -53,8 +53,27 @@ target_link_libraries(imgui_rl PUBLIC raylib)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Embed resources into the executable so each build is a single file.
+# Each file becomes a byte array <symbol> plus <symbol>_size (see src/resources.h).
+set(EMBEDDED_SOURCES)
+function(embed_resource FILE SYMBOL)
+    set(IN ${CMAKE_SOURCE_DIR}/${FILE})
+    set(OUT ${CMAKE_BINARY_DIR}/embedded/${SYMBOL}.cpp)
+    add_custom_command(
+        OUTPUT ${OUT}
+        COMMAND ${CMAKE_COMMAND} -DINPUT=${IN} -DOUTPUT=${OUT} -DSYMBOL=${SYMBOL}
+                -P ${CMAKE_SOURCE_DIR}/cmake/embed.cmake
+        DEPENDS ${IN} ${CMAKE_SOURCE_DIR}/cmake/embed.cmake
+        COMMENT "Embedding ${FILE}"
+    )
+    set(EMBEDDED_SOURCES ${EMBEDDED_SOURCES} ${OUT} PARENT_SCOPE)
+endfunction()
+
+embed_resource(ressources/main.ldtk res_main_ldtk)
+embed_resource(ressources/map/tileset.png res_tileset_png)
+
 file(GLOB SOURCES CONFIGURE_DEPENDS src/*.cpp)
-add_executable(Sidescroller ${SOURCES})
+add_executable(Sidescroller ${SOURCES} ${EMBEDDED_SOURCES})
 target_include_directories(Sidescroller PRIVATE src)
 
 target_link_libraries(Sidescroller PRIVATE raylib nlohmann_json::nlohmann_json imgui_rl)

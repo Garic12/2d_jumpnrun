@@ -1,7 +1,7 @@
 #include "globals.h"
 #include "level.h"
 #include "player.h"
-#include <fstream>
+#include "resources.h"
 #include <imgui.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -82,15 +82,10 @@ int main() {
     rlImGuiSetup(true);
 
     // Load world with all sublevels
-    // Read json
-    std::ifstream file("ressources/main.ldtk");
-    if (!file) {
-        std::cerr << "Could not open main.ldtk\n";
-        return 1;
-    }
-
+    // Resources are embedded in the executable (see src/resources.h)
     // Load texture
-    Image image = LoadImage("ressources/map/tileset.png");
+    Image image = LoadImageFromMemory(".png", res_tileset_png,
+                                      static_cast<int>(res_tileset_png_size));
     if (image.data == nullptr) {
         std::cerr << "Failed to load tileset: " << "\n";
         return 1;
@@ -103,7 +98,7 @@ int main() {
     }
 
     // Go down to level part
-    json ldtk = json::parse(file);
+    json ldtk = json::parse(res_main_ldtk, res_main_ldtk + res_main_ldtk_size);
     const auto level_arr = ldtk["levels"];
 
     World world;
