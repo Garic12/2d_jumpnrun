@@ -34,6 +34,8 @@ struct Player {
 
         float wall_cooldown_timer;
         float wall_cooldown_time;
+
+        int coins = 0;
 };
 
 int SetupPlayer(Player *player, Level *level);

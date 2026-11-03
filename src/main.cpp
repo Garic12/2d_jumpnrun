@@ -74,7 +74,7 @@ bool CollisionRectSpike(const Rectangle &rect, const Spike &spike) {
 }
 
 int main() {
-    int DEBUG = 0;
+    int DEBUG = 1;
 
     InitWindow(screenWidth, screenHeight, "Sidescroller");
     SetTargetFPS(60);
@@ -314,6 +314,7 @@ int main() {
             if (CheckCollisionCircleRec(coin_center, coin.r,
                                         GetPlayerHurtbox(player))) {
                 it = coins.erase(it); // Erase and get the next iterator
+                player.coins += 1;
             } else {
                 ++it;
             }
@@ -413,7 +414,7 @@ int main() {
             ImGui::DragFloat2("Player pos", &player.pos.x);
             ImGui::Separator();
             // ImGui::DragFloat("Walk speed", &player.walk_speed, 1.0f);
-            ImGui::DragInt("Touches Wall", &player.touches_wall);
+            ImGui::DragInt("Coins", &player.coins);
             ImGui::End();
 
             // ImGui::ShowDemoWindow(); // shows every available widget,
