@@ -20,7 +20,7 @@ int SetupPlayer(Player *player, Level *level) {
     player->wall_coyote_timer = 0.0f;
 
     player->wall_cooldown_time = 0.5f;
-    player->wall_coyote_timer = 0.0f;
+    player->wall_cooldown_timer = 0.0f;
 
     player->walk_speed = 45.0f;
 

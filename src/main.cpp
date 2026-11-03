@@ -111,7 +111,7 @@ int main() {
     for (const auto &level : level_arr) {
         world.levels.push_back(LoadLevel(level));
     }
-    world.current_level = &world.levels[0];
+    world.current_level = &world.levels[4];
 
     Player player;
     if (SetupPlayer(&player, world.current_level) != 0) {
@@ -123,7 +123,9 @@ int main() {
     Camera2D cam = {.offset = {screenWidth / 2.0f, screenHeight / 2.0f},
                     .target = player.pos,
                     .rotation = 0.0,
-                    .zoom = 5.0f};
+                    .zoom = 6.0f};
+
+    float max_vel = 0.0f;
 
     // --- Game Loop ---
     while (!WindowShouldClose()) {
@@ -222,9 +224,12 @@ int main() {
         }
 
         bool has_gravity = true;
+        player.grounded = false;
         if (has_gravity) {
+            player.vel.y = std::min(player.vel.y, player.max_gravity);
             float dy = player.vel.y * dt;
             player.pos.y += dy;
+
             const Rectangle hitbox = GetPlayerHitbox(player);
             const TileBounds bounds = GetTileBounds(hitbox);
 
@@ -262,6 +267,9 @@ int main() {
                     }
                 }
             }
+        }
+        if (player.vel.y > max_vel) {
+            max_vel = player.vel.y;
         }
         // Check key related collision
         if (!player.has_key) {
@@ -410,11 +418,10 @@ int main() {
 
             ImGui::Begin("Debug");
             ImGui::Text("Frametime: %.3f ms", GetFrameTime() * 1000.0f);
-            ImGui::Text("Current Level: %s", (world.current_level->id).c_str());
-            ImGui::DragFloat2("Player pos", &player.pos.x);
+            ImGui::DragFloat("Velocity", &max_vel);
             ImGui::Separator();
-            // ImGui::DragFloat("Walk speed", &player.walk_speed, 1.0f);
             ImGui::DragInt("Coins", &player.coins);
+            ImGui::Text("Current Level: %s", (world.current_level->id).c_str());
             ImGui::End();
 
             // ImGui::ShowDemoWindow(); // shows every available widget,

@@ -16,6 +16,7 @@ struct Player {
         float walljump_velocity;
         float jump_gravity;
         float fall_gravity;
+        float max_gravity = 140.0f;
 
         float walk_speed;
 
