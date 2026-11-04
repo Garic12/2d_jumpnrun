@@ -710,22 +710,6 @@
 							"__worldY": 32
 						},
 						{
-							"__identifier": "Text",
-							"__grid": [4,6],
-							"__pivot": [0,0],
-							"__tags": [],
-							"__tile": null,
-							"__smartColor": "#EAD4AA",
-							"iid": "52dd5e60-bde0-11f1-8fb4-d5a44bd59e28",
-							"width": 8,
-							"height": 8,
-							"defUid": 134,
-							"px": [32,48],
-							"fieldInstances": [{ "__identifier": "Press_WASD_to_move_", "__type": "String", "__value": null, "__tile": null, "defUid": 135, "realEditorValues": [] }],
-							"__worldX": 32,
-							"__worldY": 48
-						},
-						{
 							"__identifier": "Key",
 							"__grid": [4,2],
 							"__pivot": [0,0],

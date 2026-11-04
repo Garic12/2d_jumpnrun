@@ -173,17 +173,20 @@ int main() {
         player.touches_wall = 0;
 
         // Horizontal movement
+        float control;
+        if (player.grounded)
+            control = 30.0f;
+        else if (player.wall_cooldown_timer > 0.0f)
+            control = 6.0f;
+        else
+            control = 30.0f;
+
         float dx = 0.0f;
         if (player.state != DEAD) {
-            dx = input.move_x * player.walk_speed * dt + player.vel.x * dt;
+            float target = input.move_x * player.walk_speed;
+            player.vel.x += (target - player.vel.x) * control * dt;
+            dx = player.vel.x * dt;
             player.pos.x += dx;
-        }
-
-        // Horizontal drag
-        if (input.move_x == 0) {
-            player.vel.x *= 0.95f;
-        } else {
-            player.vel.x *= 0.85f;
         }
 
         // Horizontal collision check
@@ -280,7 +283,7 @@ int main() {
                         if (dy > 0.0f) {
                             player.pos.y = y * TILESIZE - player.body.offset.y -
                                            player.body.size.y;
-                            player.vel = Vector2Zero();
+                            player.vel.y = 0.0f;
                             player.grounded = true;
                         } else if (dy < 0.0f) {
                             player.pos.y =
@@ -298,7 +301,7 @@ int main() {
                                 player.pos.y = y * TILESIZE -
                                                player.body.offset.y -
                                                player.body.size.y;
-                                player.vel = Vector2Zero();
+                                player.vel.y = 0.0f;
                                 player.grounded = true;
                             }
                         }
