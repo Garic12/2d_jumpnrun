@@ -12,27 +12,29 @@
 
 using json = nlohmann::json;
 
-void DrawFinishScreen(Player player, int num_coins) {
+void DrawFinishScreen(Player player, int num_coins, float run_time) {
     int boxWidth = 300;
-    int boxHeight = 170;
+    int boxHeight = 205;
 
     int x = (GetScreenWidth() - boxWidth) / 2;
     int y = (GetScreenHeight() - boxHeight) / 2;
 
-    // Dark background
     DrawRectangle(x, y, boxWidth, boxHeight, BLACK);
 
-    // Gold border
     DrawRectangle(x, y, boxWidth, 5, GOLD);
     DrawRectangle(x, y + boxHeight - 5, boxWidth, 5, GOLD);
     DrawRectangle(x, y, 5, boxHeight, GOLD);
     DrawRectangle(x + boxWidth - 5, y, 5, boxHeight, GOLD);
 
-    // Text
+    int minutes = (int)run_time / 60;
+    float seconds = run_time - minutes * 60;
+
     DrawText("YOU WIN!", x + 75, y + 25, 35, GOLD);
     DrawText(TextFormat("Coins: %d/%d", player.coins, num_coins), x + 60,
              y + 85, 25, WHITE);
     DrawText(TextFormat("Deaths: %d", player.deaths), x + 60, y + 120, 25, RED);
+    DrawText(TextFormat("Time: %02d:%05.2f", minutes, seconds), x + 60, y + 155,
+             25, SKYBLUE);
 }
 
 Vector2 Perpendicular(Vector2 v) { return {-v.y, v.x}; }
@@ -88,6 +90,7 @@ int main() {
     float screenHeight = 600;
 
     int game_finished = false;
+    float run_time = 0.0f;
 
     InitWindow(screenWidth, screenHeight, "Sidescroller");
     SetTargetFPS(60);
@@ -118,7 +121,7 @@ int main() {
         world.levels.push_back(LoadLevel(level, num_coins));
     }
     assert(num_coins != 0);
-    world.current_level = &world.levels[4];
+    world.current_level = &world.levels[0];
 
     Player player;
     if (SetupPlayer(&player, world.current_level) != 0) {
@@ -136,12 +139,15 @@ int main() {
         if (game_finished) {
             BeginDrawing();
             ClearBackground({24, 26, 40, 255});
-            DrawFinishScreen(player, num_coins);
+            DrawFinishScreen(player, num_coins, run_time);
             EndDrawing();
             continue;
         }
 
         float dt = GetFrameTime();
+        if (!game_finished) {
+            run_time += dt;
+        }
 
         if (IsKeyPressed(KEY_B)) {
             fullscreen = !fullscreen;
@@ -365,7 +371,6 @@ int main() {
                     if (CheckCollisionRecs(player_rect, door.hitbox)) {
                         if (door.target_level == "Finish") {
                             game_finished = true;
-                            player.state = DEAD;
                             break;
                         }
                         for (Level &new_level : world.levels) {
