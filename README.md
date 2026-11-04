@@ -2,6 +2,8 @@
 
 A small pixel-art platformer built in C++ with raylib, used as a playground for trying out 2D game mechanics.
 
+![Gameplay](docs/screenshots/gameplay.gif)
+
 ## Features
 
 - Platforming with coyote time, walljumps and tight collisions
