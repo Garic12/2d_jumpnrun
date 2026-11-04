@@ -2249,7 +2249,7 @@
 					"entityInstances": [
 						{
 							"__identifier": "PlayerStart",
-							"__grid": [6,21],
+							"__grid": [2,2],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
@@ -2258,10 +2258,10 @@
 							"width": 8,
 							"height": 8,
 							"defUid": 101,
-							"px": [48,168],
+							"px": [16,16],
 							"fieldInstances": [],
-							"__worldX": 584,
-							"__worldY": 168
+							"__worldX": 552,
+							"__worldY": 16
 						},
 						{
 							"__identifier": "Coin",

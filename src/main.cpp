@@ -121,7 +121,7 @@ int main() {
         world.levels.push_back(LoadLevel(level, num_coins));
     }
     assert(num_coins != 0);
-    world.current_level = &world.levels[0];
+    world.current_level = &world.levels[4];
 
     Player player;
     if (SetupPlayer(&player, world.current_level) != 0) {
