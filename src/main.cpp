@@ -12,21 +12,6 @@
 
 using json = nlohmann::json;
 
-struct Input {
-        float move_x;
-        bool jump_pressed;
-};
-
-Input GatherInput() {
-    Input input = {};
-    if (IsKeyDown(KEY_A))
-        input.move_x -= 1.0f;
-    if (IsKeyDown(KEY_D))
-        input.move_x += 1.0f;
-    input.jump_pressed = IsKeyPressed(KEY_SPACE);
-    return input;
-}
-
 Vector2 Perpendicular(Vector2 v) { return {-v.y, v.x}; }
 
 Vector2 ProjectionMinMax(const Vector2 axis, const Vector2 *points, int size) {
@@ -75,21 +60,22 @@ bool CollisionRectSpike(const Rectangle &rect, const Spike &spike) {
 
 int main() {
     int DEBUG = 0;
+    bool fullscreen = false;
+    float screenWidth = 800;
+    float screenHeight = 600;
 
     InitWindow(screenWidth, screenHeight, "Sidescroller");
     SetTargetFPS(60);
-
     rlImGuiSetup(true);
 
     // Load world with all sublevels
-    // Resources are embedded in the executable (see src/resources.h)
-    // Load texture
     Image image = LoadImageFromMemory(".png", res_tileset_png,
                                       static_cast<int>(res_tileset_png_size));
     if (image.data == nullptr) {
         std::cerr << "Failed to load tileset: " << "\n";
         return 1;
     }
+
     Texture2D texture = LoadTextureFromImage(image);
     UnloadImage(image);
     if (texture.id == 0) {
@@ -97,15 +83,16 @@ int main() {
         return 1;
     }
 
-    // Go down to level part
     json ldtk = json::parse(res_main_ldtk, res_main_ldtk + res_main_ldtk_size);
     const auto level_arr = ldtk["levels"];
 
     World world;
+    int num_coins = 0;
     world.levels.reserve(level_arr.size());
     for (const auto &level : level_arr) {
-        world.levels.push_back(LoadLevel(level));
+        world.levels.push_back(LoadLevel(level, num_coins));
     }
+    assert(num_coins != 0);
     world.current_level = &world.levels[0];
 
     Player player;
@@ -114,27 +101,43 @@ int main() {
         return 1;
     }
 
-    // Setup camera and define important constants
     Camera2D cam = {.offset = {screenWidth / 2.0f, screenHeight / 2.0f},
                     .target = player.pos,
                     .rotation = 0.0,
-                    .zoom = 6.0f};
+                    .zoom = 6.5f};
 
     // --- Game Loop ---
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
+        if (IsKeyPressed(KEY_B)) {
+            fullscreen = !fullscreen;
+
+            if (fullscreen) {
+                int monitor = GetCurrentMonitor();
+                screenWidth = GetMonitorWidth(monitor);
+                screenHeight = GetMonitorHeight(monitor);
+            } else {
+                screenWidth = 800;
+                screenHeight = 600;
+            }
+            SetWindowSize(screenWidth, screenHeight);
+            cam.offset = {screenWidth / 2.0f, screenHeight / 2.0f};
+            ToggleFullscreen();
+        }
+
         Input input = {};
         if (!ImGui::GetIO().WantCaptureKeyboard)
             input = GatherInput();
 
-        // Horizontal movement and collision
+        // Reset Variables
         player.touches_wall = 0;
 
+        // Horizontal movement
         float dx = input.move_x * player.walk_speed * dt + player.vel.x * dt;
         player.pos.x += dx;
 
-        // Include horizontal drag
+        // Horizontal drag
         if (input.move_x == 0) {
             player.vel.x *= 0.95f;
         } else {
@@ -159,7 +162,6 @@ int main() {
         }
 
         // Check if player is standing next to wall
-        // TODO: That looks kinda dirty
         {
             constexpr float probe = 0.5f; // pixels
             const Rectangle hitbox = GetPlayerHitbox(player);
@@ -183,7 +185,6 @@ int main() {
             }
         }
 
-        // Walljump Coyote
         if (player.touches_wall != 0) {
             player.wall_coyote_timer = player.wall_coyote_time;
         } else {
@@ -211,6 +212,8 @@ int main() {
         }
 
         // Vertical movement and collision
+        player.grounded = false;
+
         if (player.vel.y >= 0) {
             player.vel.y += player.fall_gravity * dt;
         } else {
@@ -218,15 +221,14 @@ int main() {
         }
 
         bool has_gravity = true;
-        player.grounded = false;
         if (has_gravity) {
             player.vel.y = std::min(player.vel.y, player.max_gravity);
             float dy = player.vel.y * dt;
             player.pos.y += dy;
 
+            // Vertical collision check
             const Rectangle hitbox = GetPlayerHitbox(player);
             const TileBounds bounds = GetTileBounds(hitbox);
-
             for (int y = bounds.top; y <= bounds.bottom; ++y) {
                 for (int x = bounds.left; x <= bounds.right; ++x) {
                     // Check grid bounds
@@ -284,7 +286,7 @@ int main() {
             player.facing = LEFT;
         }
 
-        // Check key related collision
+        // Entity Collision
         if (!player.has_key) {
             Rectangle key_rect = {world.current_level->key.x,
                                   world.current_level->key.y + 4.0f, 8.0f,
@@ -294,7 +296,28 @@ int main() {
             }
         }
 
-        // Check walking through door, maybe do this more efficient someday
+        for (const Spike &spike : world.current_level->spikes) {
+            if (CollisionRectSpike(GetPlayerHurtbox(player), spike)) {
+                player.pos = player.last_entry;
+            }
+        }
+
+        auto &coins = world.current_level->coins; // vector type
+        for (auto it = coins.begin(); it != coins.end();) {
+            const Coin &coin = *it;
+
+            Vector2 coin_center = {coin.pos.x + 4.0f, coin.pos.y + 4.0f};
+
+            if (CheckCollisionCircleRec(coin_center, coin.r,
+                                        GetPlayerHurtbox(player))) {
+                it = coins.erase(it); // Erase and get the next iterator
+                player.coins += 1;
+            } else {
+                ++it;
+            }
+        }
+
+        // Logic to teleport when stepping on door
         if (player.has_key) {
             Rectangle player_rect = {player.pos.x, player.pos.y, TILESIZE,
                                      TILESIZE};
@@ -311,33 +334,6 @@ int main() {
                     }
                     break;
                 }
-            }
-        }
-
-        // Check spike collision
-        bool collision;
-        for (const Spike &spike : world.current_level->spikes) {
-            if (CollisionRectSpike(GetPlayerHurtbox(player), spike)) {
-                player.pos = player.last_entry;
-                collision = true;
-            } else {
-                collision = false;
-            }
-        }
-
-        // Coin collision
-        auto &coins = world.current_level->coins; // vector type
-        for (auto it = coins.begin(); it != coins.end();) {
-            const Coin &coin = *it;
-
-            Vector2 coin_center = {coin.pos.x + 4.0f, coin.pos.y + 4.0f};
-
-            if (CheckCollisionCircleRec(coin_center, coin.r,
-                                        GetPlayerHurtbox(player))) {
-                it = coins.erase(it); // Erase and get the next iterator
-                player.coins += 1;
-            } else {
-                ++it;
             }
         }
 
@@ -388,23 +384,21 @@ int main() {
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
         }
 
-        // Draw door and key
         if (player.has_key) {
-            // Door
+            // Draw only door
             src.x = 88.0f;
             src.y = 56.0f;
             dest.x = world.current_level->doors[0].hitbox.x;
             dest.y = world.current_level->doors[0].hitbox.y;
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
         } else {
-            // Door
+            // Draw door and key
             src.x = 80.0f;
             src.y = 56.0f;
             dest.x = world.current_level->doors[0].hitbox.x;
             dest.y = world.current_level->doors[0].hitbox.y;
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
 
-            // Key
             src.x = 48.0f;
             src.y = 40.0f;
             dest.x = world.current_level->key.x;
@@ -412,17 +406,18 @@ int main() {
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
         }
 
-        // Coins
         for (Coin &coin : world.current_level->coins) {
             dest.x = coin.pos.x;
             dest.y = coin.pos.y;
-            DrawAnimationFrame(coin.anim, texture, dt, dest);
+            anim::Draw(coin.anim, texture, dt, dest);
         }
 
         // Draw Player
         DrawPlayer(player, texture);
-
         EndMode2D();
+
+        DrawText(TextFormat("Coins: %d/%d", player.coins, num_coins), 20, 20,
+                 20, GOLD);
 
         if (DEBUG) {
             rlImGuiBegin();
@@ -430,12 +425,8 @@ int main() {
             ImGui::Begin("Debug");
             ImGui::Text("Frametime: %.3f ms", GetFrameTime() * 1000.0f);
             ImGui::Separator();
-            ImGui::DragInt("Coins", &player.coins);
             ImGui::Text("Current Level: %s", (world.current_level->id).c_str());
             ImGui::End();
-
-            // ImGui::ShowDemoWindow(); // shows every available widget,
-            // handy as a reference
 
             rlImGuiEnd();
         }

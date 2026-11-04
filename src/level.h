@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+// Entities
 struct Spike {
         Vector2 a;
         Vector2 b;
@@ -14,16 +15,7 @@ struct Spike {
 struct Coin {
         Vector2 pos;
         float r = 4.0f;
-        TileAnimation anim;
-};
-
-struct Tile {
-        Vector2 world_pos;
-        Vector2 src_pos;
-};
-
-struct TileBounds {
-        int left, right, top, bottom;
+        anim::TileAnimation anim;
 };
 
 struct Door {
@@ -31,6 +23,16 @@ struct Door {
 
         std::string target_level;
         Vector2 target_pos;
+};
+
+// Tiles
+struct Tile {
+        Vector2 world_pos;
+        Vector2 src_pos;
+};
+
+struct TileBounds {
+        int left, right, top, bottom;
 };
 
 struct Level {
@@ -57,8 +59,7 @@ struct World {
         Level *current_level = nullptr;
 };
 
-Level LoadLevel(const nlohmann::json &data);
+Level LoadLevel(const nlohmann::json &data, int &coins);
 
-// Helper functions
 TileBounds GetTileBounds(const Rectangle &rect);
 int IsColliding(const Level *level, int x, int y);

@@ -2,7 +2,7 @@
 #include "globals.h"
 #include "raylib.h"
 
-Level LoadLevel(const nlohmann::json &data) {
+Level LoadLevel(const nlohmann::json &data, int &coins) {
     Level level;
 
     level.id = data["identifier"].get<std::string>();
@@ -17,7 +17,6 @@ Level LoadLevel(const nlohmann::json &data) {
             const auto &entities = layer["entityInstances"];
 
             for (const auto &entity : entities) {
-                // TODO: Also feed in other entities
                 const std::string entity_id =
                     entity["__identifier"].get<std::string>();
 
@@ -36,7 +35,6 @@ Level LoadLevel(const nlohmann::json &data) {
                                     entity["height"].get<float>()};
                     door.hitbox = {pos.x, pos.y, size.x, size.y};
 
-                    // Get target location of door
                     const float target_x =
                         entity["fieldInstances"][0]["__value"][0].get<float>();
                     const float target_y =
@@ -60,7 +58,8 @@ Level LoadLevel(const nlohmann::json &data) {
                     level.key = {entity["__worldX"].get<float>(),
                                  entity["__worldY"].get<float>()};
                 } else if (entity_id == "Coin") {
-                    TileAnimation anim = {
+                    coins += 1;
+                    anim::TileAnimation anim = {
                         {{64, 40}, {72, 40}, {80, 40}, {88, 40}}, 0, 0.225};
                     Vector2 coin_pos = {entity["__worldX"].get<float>(),
                                         entity["__worldY"].get<float>()};
@@ -82,7 +81,6 @@ Level LoadLevel(const nlohmann::json &data) {
                      .src_pos = {tile["src"][0], tile["src"][1]}});
             }
         } else if (type == "IntGrid") {
-            // Build collision grid
             int width = layer["__cWid"];
             int height = layer["__cHei"];
             level.collision_width = width;
@@ -98,7 +96,6 @@ Level LoadLevel(const nlohmann::json &data) {
     return level;
 }
 
-// Helper functions
 TileBounds GetTileBounds(const Rectangle &rect) {
     // Returns surrounding tiles in gridspace
     return {(int)floor(rect.x / TILESIZE),
@@ -108,7 +105,6 @@ TileBounds GetTileBounds(const Rectangle &rect) {
 }
 
 int IsColliding(const Level *level, int x, int y) {
-    // x, y are world tile coords, convert to level-local grid coords
     x -= (int)(level->world_pos.x / TILESIZE);
     y -= (int)(level->world_pos.y / TILESIZE);
     if (x < 0 || x >= level->collision_width || y < 0 ||

@@ -34,6 +34,16 @@ int SetupPlayer(Player *player, Level *level) {
     return 0;
 }
 
+Input GatherInput() {
+    Input input = {};
+    if (IsKeyDown(KEY_A))
+        input.move_x -= 1.0f;
+    if (IsKeyDown(KEY_D))
+        input.move_x += 1.0f;
+    input.jump_pressed = IsKeyPressed(KEY_SPACE);
+    return input;
+}
+
 Rectangle GetPlayerHitbox(const Player &player) {
     return {player.pos.x + player.body.offset.x,
             player.pos.y + player.body.offset.y, player.body.size.x,

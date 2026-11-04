@@ -22,6 +22,11 @@ struct Hitbox {
         Vector2 size;
 };
 
+struct Input {
+        float move_x;
+        bool jump_pressed;
+};
+
 struct Player {
         float jump_height;
         float jump_time_to_peak;
@@ -58,6 +63,9 @@ struct Player {
 };
 
 int SetupPlayer(Player *player, Level *level);
+Input GatherInput();
+
 Rectangle GetPlayerHitbox(const Player &player);
 Rectangle GetPlayerHurtbox(const Player &player);
+
 void DrawPlayer(const Player &player, const Texture2D texture);
