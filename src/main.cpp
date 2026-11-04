@@ -73,26 +73,6 @@ bool CollisionRectSpike(const Rectangle &rect, const Spike &spike) {
     return true;
 }
 
-void DrawAnimationFrame(TileAnimation &anim, const Texture2D &texture, float dt,
-                        const Rectangle &target) {
-    anim.animation_timer += dt;
-    if (anim.animation_timer >= anim.frame_duration) {
-        anim.animation_timer -= anim.frame_duration;
-
-        anim.current_frame++;
-
-        if (anim.current_frame >= anim.frames.size()) {
-            anim.current_frame = 0;
-        }
-    }
-
-    Rectangle src = {0.0f, 0.0f, TILESIZE, TILESIZE};
-    src.x = anim.frames[anim.current_frame].x;
-    src.y = anim.frames[anim.current_frame].y;
-
-    DrawTexturePro(texture, src, target, {0, 0}, 0.0f, WHITE);
-}
-
 int main() {
     int DEBUG = 0;
 
@@ -140,8 +120,6 @@ int main() {
                     .rotation = 0.0,
                     .zoom = 6.0f};
 
-    float max_vel = 0.0f;
-
     // --- Game Loop ---
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -156,6 +134,7 @@ int main() {
         float dx = input.move_x * player.walk_speed * dt + player.vel.x * dt;
         player.pos.x += dx;
 
+        // Include horizontal drag
         if (input.move_x == 0) {
             player.vel.x *= 0.95f;
         } else {
@@ -283,9 +262,28 @@ int main() {
                 }
             }
         }
-        if (player.vel.y > max_vel) {
-            max_vel = player.vel.y;
+
+        // Update player state
+        if (player.grounded) {
+            if (input.move_x == 0) {
+                player.state = IDLING;
+            } else {
+                player.state = WALKING;
+            }
+        } else {
+            if (player.vel.y > 0) {
+                player.state = FALLING;
+            } else {
+                player.state = JUMPING;
+            }
         }
+
+        if (player.vel.x > 0 || dx > 0) {
+            player.facing = RIGHT;
+        } else if (player.vel.x < 0 || dx < 0) {
+            player.facing = LEFT;
+        }
+
         // Check key related collision
         if (!player.has_key) {
             Rectangle key_rect = {world.current_level->key.x,
@@ -422,11 +420,8 @@ int main() {
         }
 
         // Draw Player
-        src.x = 0.0f;
-        src.y = 0.0f;
-        dest.x = player.pos.x;
-        dest.y = player.pos.y;
-        DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
+        DrawPlayer(player, texture);
+
         EndMode2D();
 
         if (DEBUG) {
@@ -434,7 +429,6 @@ int main() {
 
             ImGui::Begin("Debug");
             ImGui::Text("Frametime: %.3f ms", GetFrameTime() * 1000.0f);
-            ImGui::DragFloat("Velocity", &max_vel);
             ImGui::Separator();
             ImGui::DragInt("Coins", &player.coins);
             ImGui::Text("Current Level: %s", (world.current_level->id).c_str());

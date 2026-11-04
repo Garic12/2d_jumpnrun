@@ -1,15 +1,9 @@
 #pragma once
+#include "anim.h"
 #include <nlohmann/json.hpp>
 #include <raylib.h>
 #include <string>
 #include <vector>
-
-struct TileAnimation {
-        std::vector<Vector2> frames;
-        int current_frame = 0;
-        float frame_duration = 0.15;
-        float animation_timer = 0.0f;
-};
 
 struct Spike {
         Vector2 a;
