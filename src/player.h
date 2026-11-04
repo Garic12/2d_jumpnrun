@@ -3,6 +3,7 @@
 #include <raylib.h>
 
 constexpr Vector2 anim_idle = {0.0f, 0.0f};
+constexpr Vector2 anim_dead = {8.0f, 0.0f};
 constexpr Vector2 anim_walk = {0.0f, 8.0f};
 constexpr Vector2 anim_jump = {0.0f, 16.0f};
 constexpr Vector2 anim_fall = {0.0f, 24.0f};
@@ -13,6 +14,7 @@ enum PlayerState {
     WALKING,
     JUMPING,
     FALLING,
+    DEAD,
 };
 
 enum Facing { LEFT, RIGHT };
@@ -28,27 +30,21 @@ struct Input {
 };
 
 struct Player {
+        int coins = 0;
+        int deaths = 0;
+
         float jump_height;
-        float jump_time_to_peak;
-        float jump_time_to_fall;
+        float walk_speed;
 
         float jump_velocity;
         float walljump_velocity;
+
         float jump_gravity;
         float fall_gravity;
         float max_gravity = 140.0f;
 
-        float walk_speed;
-
-        Vector2 pos = {0.0f, 0.0f};
-        Vector2 last_entry = {0.0f, 0.0f};
-        Vector2 vel = {0.0f, 0.0f};
-
-        Hitbox body = {{0.0f, 0.0f}, {8.0f, 8.0f}};
-        Hitbox hurtbox = {{1.0f, 2.0f}, {5.0f, 4.0f}};
-        bool grounded = true;
-        int touches_wall;
-        bool has_key;
+        float jump_time_to_peak;
+        float jump_time_to_fall;
 
         float wall_coyote_timer;
         float wall_coyote_time;
@@ -56,10 +52,22 @@ struct Player {
         float wall_cooldown_timer;
         float wall_cooldown_time;
 
-        int coins = 0;
+        float respawn_timer;
+        float respawn_time;
+
+        int touches_wall;
+        bool has_key;
+        bool grounded = true;
 
         PlayerState state = IDLING;
         Facing facing;
+
+        Vector2 pos = {0.0f, 0.0f};
+        Vector2 vel = {0.0f, 0.0f};
+        Vector2 last_entry = {0.0f, 0.0f};
+
+        Hitbox body = {{0.0f, 0.0f}, {8.0f, 8.0f}};
+        Hitbox hurtbox = {{1.0f, 2.0f}, {5.0f, 4.0f}};
 };
 
 int SetupPlayer(Player *player, Level *level);

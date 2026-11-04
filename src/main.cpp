@@ -12,6 +12,29 @@
 
 using json = nlohmann::json;
 
+void DrawFinishScreen(Player player, int num_coins) {
+    int boxWidth = 300;
+    int boxHeight = 170;
+
+    int x = (GetScreenWidth() - boxWidth) / 2;
+    int y = (GetScreenHeight() - boxHeight) / 2;
+
+    // Dark background
+    DrawRectangle(x, y, boxWidth, boxHeight, BLACK);
+
+    // Gold border
+    DrawRectangle(x, y, boxWidth, 5, GOLD);
+    DrawRectangle(x, y + boxHeight - 5, boxWidth, 5, GOLD);
+    DrawRectangle(x, y, 5, boxHeight, GOLD);
+    DrawRectangle(x + boxWidth - 5, y, 5, boxHeight, GOLD);
+
+    // Text
+    DrawText("YOU WIN!", x + 75, y + 25, 35, GOLD);
+    DrawText(TextFormat("Coins: %d/%d", player.coins, num_coins), x + 60,
+             y + 85, 25, WHITE);
+    DrawText(TextFormat("Deaths: %d", player.deaths), x + 60, y + 120, 25, RED);
+}
+
 Vector2 Perpendicular(Vector2 v) { return {-v.y, v.x}; }
 
 Vector2 ProjectionMinMax(const Vector2 axis, const Vector2 *points, int size) {
@@ -64,6 +87,8 @@ int main() {
     float screenWidth = 800;
     float screenHeight = 600;
 
+    int game_finished = false;
+
     InitWindow(screenWidth, screenHeight, "Sidescroller");
     SetTargetFPS(60);
     rlImGuiSetup(true);
@@ -93,7 +118,7 @@ int main() {
         world.levels.push_back(LoadLevel(level, num_coins));
     }
     assert(num_coins != 0);
-    world.current_level = &world.levels[0];
+    world.current_level = &world.levels[4];
 
     Player player;
     if (SetupPlayer(&player, world.current_level) != 0) {
@@ -108,6 +133,14 @@ int main() {
 
     // --- Game Loop ---
     while (!WindowShouldClose()) {
+        if (game_finished) {
+            BeginDrawing();
+            ClearBackground({24, 26, 40, 255});
+            DrawFinishScreen(player, num_coins);
+            EndDrawing();
+            continue;
+        }
+
         float dt = GetFrameTime();
 
         if (IsKeyPressed(KEY_B)) {
@@ -134,8 +167,11 @@ int main() {
         player.touches_wall = 0;
 
         // Horizontal movement
-        float dx = input.move_x * player.walk_speed * dt + player.vel.x * dt;
-        player.pos.x += dx;
+        float dx = 0.0f;
+        if (player.state != DEAD) {
+            dx = input.move_x * player.walk_speed * dt + player.vel.x * dt;
+            player.pos.x += dx;
+        }
 
         // Horizontal drag
         if (input.move_x == 0) {
@@ -193,7 +229,7 @@ int main() {
             }
         }
 
-        if (input.jump_pressed) {
+        if (input.jump_pressed && player.state != DEAD) {
             if (player.grounded) {
                 player.vel.y = -player.jump_velocity;
                 player.grounded = false;
@@ -221,7 +257,7 @@ int main() {
         }
 
         bool has_gravity = true;
-        if (has_gravity) {
+        if (has_gravity && player.state != DEAD) {
             player.vel.y = std::min(player.vel.y, player.max_gravity);
             float dy = player.vel.y * dt;
             player.pos.y += dy;
@@ -266,18 +302,19 @@ int main() {
         }
 
         // Update player state
-        if (player.grounded) {
-            if (input.move_x == 0) {
+        if (player.state == DEAD) {
+            player.respawn_timer -= dt;
+
+            if (player.respawn_timer <= 0) {
+                // Respawn the player
+                player.pos = player.last_entry;
+                player.vel = Vector2Zero();
                 player.state = IDLING;
-            } else {
-                player.state = WALKING;
             }
+        } else if (player.grounded) {
+            player.state = (input.move_x == 0) ? IDLING : WALKING;
         } else {
-            if (player.vel.y > 0) {
-                player.state = FALLING;
-            } else {
-                player.state = JUMPING;
-            }
+            player.state = (player.vel.y > 0) ? FALLING : JUMPING;
         }
 
         if (player.vel.x > 0 || dx > 0) {
@@ -287,52 +324,61 @@ int main() {
         }
 
         // Entity Collision
-        if (!player.has_key) {
-            Rectangle key_rect = {world.current_level->key.x,
-                                  world.current_level->key.y + 4.0f, 8.0f,
-                                  3.0f};
-            if (CheckCollisionRecs(GetPlayerHitbox(player), key_rect)) {
-                player.has_key = true;
+        if (player.state != DEAD) {
+            if (!player.has_key) {
+                Rectangle key_rect = {world.current_level->key.x,
+                                      world.current_level->key.y + 4.0f, 8.0f,
+                                      3.0f};
+                if (CheckCollisionRecs(GetPlayerHitbox(player), key_rect)) {
+                    player.has_key = true;
+                }
             }
-        }
 
-        for (const Spike &spike : world.current_level->spikes) {
-            if (CollisionRectSpike(GetPlayerHurtbox(player), spike)) {
-                player.pos = player.last_entry;
+            for (const Spike &spike : world.current_level->spikes) {
+                if (CollisionRectSpike(GetPlayerHurtbox(player), spike)) {
+                    player.deaths += 1;
+                    player.state = DEAD;
+                    player.respawn_timer = player.respawn_time;
+                }
             }
-        }
 
-        auto &coins = world.current_level->coins; // vector type
-        for (auto it = coins.begin(); it != coins.end();) {
-            const Coin &coin = *it;
+            auto &coins = world.current_level->coins; // vector type
+            for (auto it = coins.begin(); it != coins.end();) {
+                const Coin &coin = *it;
 
-            Vector2 coin_center = {coin.pos.x + 4.0f, coin.pos.y + 4.0f};
+                Vector2 coin_center = {coin.pos.x + 4.0f, coin.pos.y + 4.0f};
 
-            if (CheckCollisionCircleRec(coin_center, coin.r,
-                                        GetPlayerHurtbox(player))) {
-                it = coins.erase(it); // Erase and get the next iterator
-                player.coins += 1;
-            } else {
-                ++it;
+                if (CheckCollisionCircleRec(coin_center, coin.r,
+                                            GetPlayerHurtbox(player))) {
+                    it = coins.erase(it); // Erase and get the next iterator
+                    player.coins += 1;
+                } else {
+                    ++it;
+                }
             }
-        }
 
-        // Logic to teleport when stepping on door
-        if (player.has_key) {
-            Rectangle player_rect = {player.pos.x, player.pos.y, TILESIZE,
-                                     TILESIZE};
-            for (const Door &door : world.current_level->doors) {
-                if (CheckCollisionRecs(player_rect, door.hitbox)) {
-                    for (Level &new_level : world.levels) {
-                        if (door.target_level == new_level.id) {
-                            world.current_level = &new_level;
-                            player.pos = door.target_pos;
-                            player.last_entry = door.target_pos;
-                            player.has_key = false;
+            // Logic to teleport when stepping on door
+            if (player.has_key) {
+                Rectangle player_rect = {player.pos.x, player.pos.y, TILESIZE,
+                                         TILESIZE};
+                for (const Door &door : world.current_level->doors) {
+                    if (CheckCollisionRecs(player_rect, door.hitbox)) {
+                        if (door.target_level == "Finish") {
+                            game_finished = true;
+                            player.state = DEAD;
                             break;
                         }
+                        for (Level &new_level : world.levels) {
+                            if (door.target_level == new_level.id) {
+                                world.current_level = &new_level;
+                                player.pos = door.target_pos;
+                                player.last_entry = door.target_pos;
+                                player.has_key = false;
+                                break;
+                            }
+                        }
+                        break;
                     }
-                    break;
                 }
             }
         }
@@ -367,7 +413,7 @@ int main() {
         }
 
         BeginDrawing();
-        ClearBackground({40, 40, 46});
+        ClearBackground({24, 26, 40, 255});
 
         BeginMode2D(cam);
         // local Rectangles we use for drawing
@@ -416,8 +462,18 @@ int main() {
         DrawPlayer(player, texture);
         EndMode2D();
 
-        DrawText(TextFormat("Coins: %d/%d", player.coins, num_coins), 20, 20,
-                 20, GOLD);
+        // draw stats
+        // Background
+        DrawRectangle(5, 5, 220, 80, BLACK);
+
+        // Thick outer border
+        DrawRectangleLines(5, 5, 220, 80, GOLD);
+        DrawRectangleLines(6, 6, 218, 78, GOLD);
+        DrawRectangleLines(7, 7, 216, 76, GOLD);
+
+        DrawText(TextFormat("Coins: %d/%d", player.coins, num_coins), 10, 10,
+                 30, GOLD);
+        DrawText(TextFormat("Deaths: %d", player.deaths), 10, 45, 30, RED);
 
         if (DEBUG) {
             rlImGuiBegin();

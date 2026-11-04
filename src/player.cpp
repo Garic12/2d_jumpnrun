@@ -24,6 +24,9 @@ int SetupPlayer(Player *player, Level *level) {
     player->wall_cooldown_time = 0.5f;
     player->wall_cooldown_timer = 0.0f;
 
+    player->respawn_time = 0.5f;
+    player->respawn_timer = 0.0f;
+
     player->walk_speed = 45.0f;
 
     player->pos = level->player_start;
@@ -84,6 +87,13 @@ void DrawPlayer(const Player &player, const Texture2D texture) {
     case FALLING:
         src.x = anim_fall.x;
         src.y = anim_fall.y;
+        if (player.facing == RIGHT) {
+            src.width = -src.width;
+        }
+        break;
+    case DEAD:
+        src.x = anim_dead.x;
+        src.y = anim_dead.y;
         if (player.facing == RIGHT) {
             src.width = -src.width;
         }
