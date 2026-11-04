@@ -73,6 +73,26 @@ bool CollisionRectSpike(const Rectangle &rect, const Spike &spike) {
     return true;
 }
 
+void DrawAnimationFrame(TileAnimation &anim, const Texture2D &texture, float dt,
+                        const Rectangle &target) {
+    anim.animation_timer += dt;
+    if (anim.animation_timer >= anim.frame_duration) {
+        anim.animation_timer -= anim.frame_duration;
+
+        anim.current_frame++;
+
+        if (anim.current_frame >= anim.frames.size()) {
+            anim.current_frame = 0;
+        }
+    }
+
+    Rectangle src = {0.0f, 0.0f, TILESIZE, TILESIZE};
+    src.x = anim.frames[anim.current_frame].x;
+    src.y = anim.frames[anim.current_frame].y;
+
+    DrawTexturePro(texture, src, target, {0, 0}, 0.0f, WHITE);
+}
+
 int main() {
     int DEBUG = 0;
 
@@ -372,18 +392,21 @@ int main() {
 
         // Draw door and key
         if (player.has_key) {
+            // Door
             src.x = 88.0f;
             src.y = 56.0f;
             dest.x = world.current_level->doors[0].hitbox.x;
             dest.y = world.current_level->doors[0].hitbox.y;
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
         } else {
+            // Door
             src.x = 80.0f;
             src.y = 56.0f;
             dest.x = world.current_level->doors[0].hitbox.x;
             dest.y = world.current_level->doors[0].hitbox.y;
             DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
 
+            // Key
             src.x = 48.0f;
             src.y = 40.0f;
             dest.x = world.current_level->key.x;
@@ -392,12 +415,10 @@ int main() {
         }
 
         // Coins
-        src.x = 64;
-        src.y = 40;
-        for (const Coin &coin : world.current_level->coins) {
+        for (Coin &coin : world.current_level->coins) {
             dest.x = coin.pos.x;
             dest.y = coin.pos.y;
-            DrawTexturePro(texture, src, dest, {0, 0}, 0.0f, WHITE);
+            DrawAnimationFrame(coin.anim, texture, dt, dest);
         }
 
         // Draw Player

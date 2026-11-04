@@ -4,6 +4,13 @@
 #include <string>
 #include <vector>
 
+struct TileAnimation {
+        std::vector<Vector2> frames;
+        int current_frame = 0;
+        float frame_duration = 0.15;
+        float animation_timer = 0.0f;
+};
+
 struct Spike {
         Vector2 a;
         Vector2 b;
@@ -13,6 +20,7 @@ struct Spike {
 struct Coin {
         Vector2 pos;
         float r = 4.0f;
+        TileAnimation anim;
 };
 
 struct Tile {

@@ -1,7 +1,6 @@
 #include "level.h"
 #include "globals.h"
 #include "raylib.h"
-#include <cstdio>
 
 Level LoadLevel(const nlohmann::json &data) {
     Level level;
@@ -61,10 +60,12 @@ Level LoadLevel(const nlohmann::json &data) {
                     level.key = {entity["__worldX"].get<float>(),
                                  entity["__worldY"].get<float>()};
                 } else if (entity_id == "Coin") {
+                    TileAnimation anim = {
+                        {{64, 40}, {72, 40}, {80, 40}, {88, 40}}, 0, 0.225};
                     Vector2 coin_pos = {entity["__worldX"].get<float>(),
                                         entity["__worldY"].get<float>()};
 
-                    level.coins.push_back({coin_pos});
+                    level.coins.push_back({coin_pos, 4.0f, anim});
                 }
             }
         } else if (type == "Tiles") {
