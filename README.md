@@ -1,4 +1,4 @@
-# 8-Bit Metroidvania MVP
+# 8-Bit Jump and Run MVP
 
 A small pixel-art platformer built in C++ with raylib, used as a playground for trying out 2D game mechanics.
 
