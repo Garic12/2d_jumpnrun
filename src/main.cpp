@@ -176,7 +176,7 @@ int main() {
         float control;
         if (player.grounded)
             control = 30.0f;
-        else if (player.wall_cooldown_timer > 0.0f)
+        else if (player.state == JUMPING)
             control = 6.0f;
         else
             control = 30.0f;
